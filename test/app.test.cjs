@@ -154,8 +154,9 @@ test('desktop flow, preferences, persistence, completion, security and responsiv
     await page.getByRole('button', { name:'Previous day', exact:true }).click();
     await page.waitForFunction(() => document.querySelector('#history-count').textContent === '0');
     assert.equal(await page.locator('#history-total').textContent(), '0h 0m');
-    await page.locator('#history-date').fill(dayKey(yesterday));
-    await page.locator('#history-date').dispatchEvent('change');
+    await page.locator('#history-date-button').click();
+    await page.keyboard.press('ArrowRight');
+    await page.keyboard.press('Enter');
     await page.waitForFunction(() => document.querySelector('#history-count').textContent === '8');
     await page.getByRole('button', { name:'Today', exact:true }).click();
     await page.waitForFunction(() => document.querySelector('#history-count').textContent === '1');
@@ -167,6 +168,96 @@ test('desktop flow, preferences, persistence, completion, security and responsiv
     for (let i = 0; i < 3; i++) await page.getByRole('button', { name:'Today', exact:true }).click();
     await page.locator('#history-date').dispatchEvent('change');
     assert.equal(await page.evaluate(() => { window.calendarObserver.disconnect(); return window.calendarMutations; }), 0, 'reselecting the displayed day must not clear or redraw the calendar');
+    await page.locator('#history-next').hover();
+    assert.deepEqual(await page.locator('#history-next').evaluate(button => {
+      const style = getComputedStyle(button);
+      return [button.disabled, style.cursor, style.backgroundColor, style.transform];
+    }), [true, 'default', 'rgba(0, 0, 0, 0)', 'none'], 'today’s next arrow is disabled without busy or hover effects');
+    for (const width of [390, 768, 1440]) {
+      await page.setViewportSize({ width, height:width === 390 ? 650 : 790 });
+      assert.equal(await page.locator('#history-dialog').evaluate(dialog => dialog.scrollHeight === dialog.clientHeight), true, 'only the session list should scroll');
+      const navigation = await page.evaluate(async () => {
+        const geometry = () => ['#history-dialog', '.history-navigation'].map(selector => {
+          const { x, y, width, height } = document.querySelector(selector).getBoundingClientRect();
+          return { x, y, width, height };
+        });
+        const baseline = geometry();
+        const visits = [];
+        for (const offset of [-1, -1, -1, 1, 1, 1]) {
+          const before = document.querySelector('#history-results').textContent;
+          const date = new Date(`${historyDate.value}T12:00:00`);
+          date.setDate(date.getDate() + offset);
+          historyDate.value = localDate(date);
+          const pending = loadDay();
+          const during = document.querySelector('#history-results').textContent;
+          const summaryVisible = !document.querySelector('#history-summary').hidden;
+          const pendingGeometry = geometry();
+          await pending;
+          visits.push({ preserved:before === during, summaryVisible, pendingGeometry, settledGeometry:geometry() });
+        }
+        return { baseline, visits };
+      });
+      for (const visit of navigation.visits) {
+        assert.equal(visit.preserved && visit.summaryVisible, true, 'navigation keeps results visible until the replacement is ready');
+        assert.deepEqual(visit.pendingGeometry, navigation.baseline, `calendar stays anchored while loading at ${width}px`);
+        assert.deepEqual(visit.settledGeometry, navigation.baseline, `empty and populated days have the same height at ${width}px`);
+      }
+      if (width === 1440) await page.screenshot({ path:path.join(artifacts, 'still-calendar-maximized.png') });
+    }
+    await page.setViewportSize({ width:390, height:790 });
+    await page.locator('#history-date-button').click();
+    assert.equal(await page.locator('#date-picker').isVisible(), true);
+    assert.equal(await page.locator('#picker-next').isDisabled(), true, 'future months are disabled');
+    assert.equal(await page.locator('#picker-days button[aria-current="date"]').evaluate(button => document.activeElement === button), true, 'opening focuses the selected date');
+    assert.equal(await page.locator('#date-picker').evaluate(picker => {
+      const rect = picker.getBoundingClientRect();
+      return rect.left >= 0 && rect.right <= innerWidth && rect.top >= 0 && rect.bottom <= innerHeight && picker.scrollWidth === picker.clientWidth;
+    }), true, 'the picker fits the compact window');
+    const future = new Date(); future.setDate(future.getDate() + 1);
+    assert.equal(await page.locator(`#picker-days button[data-date="${dayKey(future)}"]`).isDisabled(), true);
+    await page.screenshot({ path:path.join(artifacts, 'still-date-picker-dark.png') });
+    await page.keyboard.press('Escape');
+    assert.equal(await page.locator('#date-picker').isVisible(), false);
+    assert.equal(await page.locator('#history-dialog').isVisible(), true, 'Escape closes only the picker');
+    assert.equal(await page.locator('#history-date-button').evaluate(button => document.activeElement === button), true);
+    await page.locator('#history-date-button').click();
+    await page.locator('#history-date-button').click();
+    assert.equal(await page.locator('#date-picker').isVisible(), false, 'the date button also dismisses its picker');
+    await page.locator('#history-date-button').click();
+    await page.locator('#picker-year').selectOption('2024');
+    await page.locator('#picker-month').selectOption('1');
+    assert.equal(await page.locator('#picker-days button[data-date="2024-02-29"]').count(), 1, 'leap day is available');
+    await page.locator('#picker-days button[data-date="2024-02-29"]').click();
+    assert.equal(await page.locator('#history-date').inputValue(), '2024-02-29');
+    await page.locator('#history-date-button').click();
+    await page.keyboard.press('PageUp');
+    await page.keyboard.press('End');
+    await page.keyboard.press('Enter');
+    assert.equal(await page.locator('#history-date').inputValue(), '2024-02-03', 'keyboard month/week navigation crosses month boundaries');
+    await page.evaluate(() => window.still.action('settings', { theme:'light' }));
+    await page.locator('#history-date-button').click();
+    await page.locator('#picker-month').selectOption('1');
+    await page.screenshot({ path:path.join(artifacts, 'still-date-picker-light.png') });
+    await page.locator('#picker-year').selectOption('2023');
+    assert.equal(await page.locator('#picker-days button[data-date="2023-02-29"]').count(), 0, 'non-leap February has only 28 days');
+    await page.locator('#picker-today').click();
+    await page.waitForFunction(() => document.querySelector('#history-count').textContent === '1');
+    assert.equal(await page.locator('#history-date').inputValue(), dayKey(new Date()));
+    await page.setViewportSize({ width:390, height:650 });
+    await page.locator('#history-date-button').click();
+    assert.equal(await page.locator('#date-picker').evaluate(picker => {
+      const rect = picker.getBoundingClientRect();
+      return rect.top >= 16 && rect.bottom <= innerHeight - 16;
+    }), true, 'the picker stays on screen at the minimum window height');
+    await page.locator('#picker-year').selectOption('1970');
+    await page.locator('#picker-month').selectOption('0');
+    assert.equal(await page.locator('#picker-previous').isDisabled(), true);
+    await page.locator('#picker-days button[data-date="1970-01-01"]').focus();
+    await page.keyboard.press('ArrowLeft');
+    assert.equal(await page.locator('#picker-days button[data-date="1970-01-01"]').evaluate(button => document.activeElement === button), true, 'keyboard navigation respects the earliest date');
+    await page.locator('#history-title').click();
+    assert.equal(await page.locator('#date-picker').isVisible(), false, 'clicking outside dismisses the picker');
+    await page.setViewportSize({ width:1020, height:840 });
     assert.equal(await page.evaluate(async () => { try { await window.still.getDay('2024-02-30'); return false; } catch { return true; } }), true);
     await page.keyboard.press('Escape');
     assert.equal(await page.locator('#history-dialog').isVisible(), false);

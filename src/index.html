@@ -51,7 +51,8 @@
     <p class="settings-intro">The small moments that made your day.</p>
     <div class="history-navigation">
       <button class="icon-button" id="history-previous" aria-label="Previous day"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 6-6 6 6 6"/></svg></button>
-      <input type="date" id="history-date" min="1970-01-01" aria-label="Session date" required>
+      <input type="date" id="history-date" min="1970-01-01" required hidden>
+      <button id="history-date-button" popovertarget="date-picker" aria-label="Choose session date" aria-haspopup="dialog" aria-expanded="false" aria-controls="date-picker"><span id="history-date-text"></span><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="16" rx="2"/><path d="M8 3v4M16 3v4M4 11h16"/></svg></button>
       <button class="icon-button" id="history-next" aria-label="Next day"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m10 6 6 6-6 6"/></svg></button>
       <button class="text-button" id="history-today">Today</button>
     </div>
@@ -61,6 +62,11 @@
       <div id="history-list" class="history-sessions"></div>
     </div>
     <p class="history-note">Completed focus sessions · Your local time</p>
+    <div id="date-picker" popover="auto" role="dialog" aria-label="Choose session date">
+      <div class="picker-heading"><select id="picker-month" aria-label="Month"></select><select id="picker-year" aria-label="Year"></select><button class="icon-button" id="picker-previous" aria-label="Previous month"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 6-6 6 6 6"/></svg></button><button class="icon-button" id="picker-next" aria-label="Next month"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m10 6 6 6-6 6"/></svg></button></div>
+      <table class="picker-grid" role="grid" aria-label="Dates"><thead><tr><th scope="col" abbr="Sunday">Su</th><th scope="col" abbr="Monday">Mo</th><th scope="col" abbr="Tuesday">Tu</th><th scope="col" abbr="Wednesday">We</th><th scope="col" abbr="Thursday">Th</th><th scope="col" abbr="Friday">Fr</th><th scope="col" abbr="Saturday">Sa</th></tr></thead><tbody id="picker-days"></tbody></table>
+      <div class="picker-footer"><span><i></i>Today</span><button class="text-button" id="picker-today">Go to today</button></div>
+    </div>
   </dialog>
   <dialog id="settings-dialog" aria-labelledby="settings-title">
     <form id="settings-form">

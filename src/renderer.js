@@ -7,6 +7,9 @@ const dialog = $('#settings-dialog');
 const form = $('#settings-form');
 const historyDialog = $('#history-dialog');
 const historyDate = $('#history-date');
+const datePicker = $('#date-picker');
+const dateButton = $('#history-date-button');
+let pickerDate;
 let historyQuery = 0;
 let historyRequestedDate = '';
 const formatDuration = minutes => `${Math.floor(minutes / 60)}h ${minutes % 60}m`;
@@ -30,28 +33,35 @@ async function loadDay({ force = false } = {}) {
   const query = ++historyQuery;
   historyRequestedDate = '';
   historyDate.max = localDate();
+  $('#history-date-text').textContent = date ? new Date(`${date}T12:00:00`).toLocaleDateString(undefined, { day:'numeric', month:'short', year:'numeric' }) : 'Choose a date';
+  dateButton.setAttribute('aria-label', `Choose session date, ${$('#history-date-text').textContent}`);
   $('#history-previous').disabled = !date || date <= historyDate.min;
   $('#history-next').disabled = !date || date >= historyDate.max;
-  $('#history-summary').hidden = true;
   $('#history-results').setAttribute('aria-busy', 'false');
-  $('#history-day-label').textContent = '';
   const list = $('#history-list');
-  if (!historyDate.checkValidity()) { list.textContent = 'Choose a valid date to see your sessions.'; return; }
+  if (!historyDate.checkValidity()) {
+    $('#history-summary').hidden = true;
+    $('#history-day-label').textContent = '';
+    list.textContent = 'Choose a valid date to see your sessions.';
+    return;
+  }
   historyRequestedDate = date;
-  $('#history-day-label').textContent = new Date(`${date}T12:00:00`).toLocaleDateString(undefined, { weekday:'long', month:'long', day:'numeric', year:'numeric' });
-  list.textContent = 'Loading your moments…';
   $('#history-results').setAttribute('aria-busy', 'true');
   try {
     const day = await window.still.getDay(date);
     if (query !== historyQuery || !historyDialog.open) return;
+    $('#history-day-label').textContent = new Date(`${date}T12:00:00`).toLocaleDateString(undefined, { weekday:'long', month:'long', day:'numeric', year:'numeric' });
     $('#history-count').textContent = day.count;
     $('#history-total').textContent = formatDuration(day.minutes);
     $('#history-summary').hidden = false;
     if (day.sessions.length) list.replaceChildren(...day.sessions.map(sessionItem));
     else list.innerHTML = '<div class="empty-state"><span class="sprout" aria-hidden="true">✳</span><p>A little room to begin.</p><span>No completed focus sessions on this day.</span></div>';
+    list.scrollTop = 0;
   } catch (error) {
     if (query === historyQuery) {
       historyRequestedDate = '';
+      $('#history-summary').hidden = true;
+      $('#history-day-label').textContent = '';
       list.textContent = 'Couldn’t load this day. Select a date to try again.';
     }
     console.error(error);
@@ -75,6 +85,96 @@ function moveDay(offset) {
   historyDate.value = localDate(date);
   loadDay();
 }
+
+function renderPicker() {
+  const today = localDate();
+  const year = pickerDate.getFullYear(), month = pickerDate.getMonth();
+  $('#picker-month').value = month;
+  $('#picker-year').value = year;
+  for (const option of $('#picker-month').options) option.disabled = localDate(new Date(year, Number(option.value), 1, 12)) > today;
+  $('#picker-previous').disabled = year === 1970 && month === 0;
+  $('#picker-next').disabled = localDate(new Date(year, month + 1, 1, 12)) > today;
+  $('.picker-grid').setAttribute('aria-label', pickerDate.toLocaleDateString(undefined, { month:'long', year:'numeric' }));
+  const first = new Date(year, month, 1, 12);
+  first.setDate(1 - first.getDay());
+  const rows = [];
+  for (let week = 0; week < 6; week++) {
+    const row = document.createElement('tr');
+    for (let weekday = 0; weekday < 7; weekday++) {
+      const date = new Date(first); date.setDate(first.getDate() + week * 7 + weekday);
+      const key = localDate(date);
+      const cell = document.createElement('td');
+      cell.setAttribute('aria-selected', String(key === historyDate.value));
+      const button = document.createElement('button');
+      button.textContent = date.getDate(); button.dataset.date = key;
+      button.setAttribute('aria-label', date.toLocaleDateString(undefined, { weekday:'long', day:'numeric', month:'long', year:'numeric' }));
+      button.disabled = key < historyDate.min || key > today;
+      button.tabIndex = key === localDate(pickerDate) ? 0 : -1;
+      if (date.getMonth() !== month) button.className = 'outside-month';
+      if (key === today) button.setAttribute('aria-current', 'date');
+      cell.append(button); row.append(cell);
+    }
+    rows.push(row);
+  }
+  $('#picker-days').replaceChildren(...rows);
+}
+
+function changePickerMonth(offset) {
+  const day = pickerDate.getDate();
+  pickerDate = new Date(pickerDate.getFullYear(), pickerDate.getMonth() + offset, 1, 12);
+  pickerDate.setDate(Math.min(day, new Date(pickerDate.getFullYear(), pickerDate.getMonth() + 1, 0).getDate()));
+  const key = localDate(pickerDate);
+  pickerDate = new Date(`${key < historyDate.min ? historyDate.min : key > localDate() ? localDate() : key}T12:00:00`);
+  renderPicker();
+}
+
+function choosePickerDate(date) {
+  if (date < historyDate.min || date > localDate()) return;
+  historyDate.value = date;
+  datePicker.hidePopover();
+  dateButton.focus();
+  loadDay();
+}
+
+dateButton.addEventListener('click', event => {
+  event.preventDefault();
+  if (datePicker.matches(':popover-open')) { datePicker.hidePopover(); return; }
+  pickerDate = new Date(`${historyDate.value || localDate()}T12:00:00`);
+  $('#picker-month').replaceChildren(...Array.from({ length:12 }, (_, month) => new Option(new Date(2024, month, 1).toLocaleDateString(undefined, { month:'long' }), month)));
+  $('#picker-year').replaceChildren(...Array.from({ length:new Date().getFullYear() - 1969 }, (_, i) => new Option(1970 + i, 1970 + i)));
+  renderPicker();
+  datePicker.showPopover();
+  const anchor = dateButton.getBoundingClientRect();
+  datePicker.style.left = `${Math.max(16, Math.min(anchor.left, innerWidth - datePicker.offsetWidth - 16))}px`;
+  datePicker.style.top = `${Math.max(16, Math.min(anchor.bottom + 8, innerHeight - datePicker.offsetHeight - 16))}px`;
+  $('#picker-days button[tabindex="0"]').focus();
+});
+datePicker.addEventListener('toggle', () => dateButton.setAttribute('aria-expanded', String(datePicker.matches(':popover-open'))));
+datePicker.addEventListener('keydown', event => {
+  if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); datePicker.hidePopover(); dateButton.focus(); return; }
+  const button = event.target.closest('[data-date]');
+  if (!button) return;
+  pickerDate = new Date(`${button.dataset.date}T12:00:00`);
+  const offsets = { ArrowLeft:-1, ArrowRight:1, ArrowUp:-7, ArrowDown:7, Home:-pickerDate.getDay(), End:6 - pickerDate.getDay() };
+  if (event.key === 'PageUp' || event.key === 'PageDown') {
+    event.preventDefault(); changePickerMonth((event.key === 'PageUp' ? -1 : 1) * (event.shiftKey ? 12 : 1));
+  } else if (event.key in offsets) {
+    event.preventDefault(); pickerDate.setDate(pickerDate.getDate() + offsets[event.key]); changePickerMonth(0);
+  } else return;
+  $('#picker-days button[tabindex="0"]').focus();
+});
+$('#picker-days').addEventListener('click', event => {
+  const button = event.target.closest('[data-date]');
+  if (button && !button.disabled) choosePickerDate(button.dataset.date);
+});
+$('#picker-previous').addEventListener('click', () => changePickerMonth(-1));
+$('#picker-next').addEventListener('click', () => changePickerMonth(1));
+for (const selector of ['#picker-month', '#picker-year']) $(selector).addEventListener('change', () => {
+  const offset = (Number($('#picker-year').value) - pickerDate.getFullYear()) * 12 + Number($('#picker-month').value) - pickerDate.getMonth();
+  changePickerMonth(offset);
+});
+$('#picker-today').addEventListener('click', () => choosePickerDate(localDate()));
+window.addEventListener('resize', () => datePicker.hidePopover());
 
 function toast(message) {
   clearTimeout(toastTimeout);
@@ -158,7 +258,7 @@ $('#settings-button').addEventListener('click', openSettings);
 $('#close-settings').addEventListener('click', () => dialog.close());
 $('#history-button').addEventListener('click', openHistory);
 $('#close-history').addEventListener('click', () => historyDialog.close());
-historyDialog.addEventListener('close', () => { historyQuery++; historyRequestedDate = ''; });
+historyDialog.addEventListener('close', () => { historyQuery++; historyRequestedDate = ''; datePicker.hidePopover(); });
 historyDate.addEventListener('change', loadDay);
 $('#history-previous').addEventListener('click', () => moveDay(-1));
 $('#history-next').addEventListener('click', () => moveDay(1));
