@@ -59,6 +59,27 @@ test('desktop flow, preferences, persistence, completion, security and responsiv
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true, `overflow at ${width}`);
       if (width === 390) await page.screenshot({ path: path.join(artifacts, 'still-narrow.png'), fullPage: true });
     }
+    await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].maximize());
+    await page.waitForTimeout(250);
+    const layout = await page.evaluate(() => {
+      const rect = selector => document.querySelector(selector).getBoundingClientRect();
+      const input = getComputedStyle(document.querySelector('#task'));
+      return { width:innerWidth, height:innerHeight, appWidth:rect('.app').width,
+        dial:rect('.timer-face').width, digits:rect('#time').width, footer:rect('footer').bottom,
+        scrollWidth:document.documentElement.scrollWidth, paddingLeft:parseFloat(input.paddingLeft), paddingRight:parseFloat(input.paddingRight) };
+    });
+    assert.ok(layout.appWidth >= layout.width * .95, 'maximized layout uses the window width');
+    assert.ok(layout.scrollWidth <= layout.width, 'maximized layout has no horizontal overflow');
+    assert.ok(layout.digits < layout.dial, 'timer digits fit the dial');
+    assert.ok(layout.paddingLeft >= 10 && layout.paddingRight >= 10, 'editing text has room on both sides');
+    if (layout.width >= 1440 && layout.height >= 940) {
+      assert.ok(layout.dial > 340, 'timer grows in a large window');
+      assert.ok(Math.abs(layout.footer - layout.height) <= 2, 'footer follows the window bottom');
+    }
+    await page.evaluate(() => window.still.action('settings', { theme: 'light' }));
+    await page.locator('#task').focus();
+    await page.screenshot({ path: path.join(artifacts, 'still-maximized.png') });
+    await page.evaluate(() => window.still.action('settings', { theme: 'dark' }));
     assert.equal(await page.evaluate(async () => { try { await window.still.action('mode', '__proto__'); return false; } catch { return true; } }), true);
     await app.close(); app = null;
     page = await launch();
