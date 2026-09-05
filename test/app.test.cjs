@@ -181,9 +181,19 @@ test('desktop flow, preferences, persistence, completion, security and responsiv
     assert.equal(await page.locator('#session-list .session-item').count(), 7);
     assert.equal(await page.locator('#session-list .session-item p').last().textContent(), 'Focus session 1');
     assert.equal(await page.locator('#session-list').evaluate(list => list.scrollHeight > list.clientHeight), true, 'all sessions are available within a scrollable sidebar');
+    await page.locator('.brand').hover();
+    const hiddenScrollbar = await page.locator('#session-list').evaluate(list => getComputedStyle(list).scrollbarColor);
+    assert.equal(hiddenScrollbar, 'rgba(0, 0, 0, 0) rgba(0, 0, 0, 0)');
+    const listWidth = await page.locator('#session-list').evaluate(list => list.clientWidth);
+    await page.screenshot({ path:path.join(artifacts, 'still-moments-idle.png') });
+    await page.locator('.recent').hover();
+    assert.notEqual(await page.locator('#session-list').evaluate(list => getComputedStyle(list).scrollbarColor), hiddenScrollbar);
+    assert.equal(await page.locator('#session-list').evaluate(list => list.clientWidth), listWidth, 'revealing the scrollbar must not shift session text');
     await page.screenshot({ path:path.join(artifacts, 'still-moments-scroll.png') });
+    await page.locator('.brand').hover();
     await page.locator('#session-list').focus();
     await page.keyboard.press('End');
+    assert.notEqual(await page.locator('#session-list').evaluate(list => getComputedStyle(list).scrollbarColor), hiddenScrollbar, 'keyboard scrolling reveals the scrollbar');
     await page.waitForFunction(() => {
       const list = document.querySelector('#session-list');
       return Math.abs(list.scrollHeight - list.clientHeight - list.scrollTop) < 1;
