@@ -93,7 +93,7 @@ class Timer {
     const today = this.daySummary(dayKey(now));
     return { settings: this.settings, mode: this.mode, totalMs: this.totalMs, cycle: this.cycle,
       task: this.task, remainingMs: this.remaining(now), running: this.deadline !== null,
-      today: { ...today, sessions: today.sessions.slice(0, 5) } };
+      today };
   }
 
   serialize(now) {

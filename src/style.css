@@ -59,6 +59,8 @@ h1 { font-size:clamp(1.8rem,min(3.5vw,4.5vh),3rem); letter-spacing:-.07rem; marg
 #focus-minutes { font-size:1.35rem; white-space:nowrap; }
 .today .stats { align-items:flex-end; }
 .recent { border-top:1px solid var(--line); margin-top:1.6rem; padding-top:1.15rem; }.recent>.eyebrow { font-size:.5625rem; }
+#session-list { max-height:clamp(10rem,calc(100dvh - 39rem),18rem); overflow-y:auto; overscroll-behavior:contain; scrollbar-width:thin; }
+#session-list:focus-visible { outline:2px solid var(--accent); outline-offset:4px; border-radius:.25rem; }
 .empty-state { padding:1.5rem 0 1.1rem; text-align:center; color:var(--muted); }.sprout { font-size:2rem; color:var(--accent); opacity:.7; }.empty-state p { font-family:Georgia,serif; font-size:1.1rem; line-height:1.4; margin:.5rem 0 .7rem; color:var(--text); }.empty-state>span:last-child { font-size:.6875rem; line-height:1.6; display:block; }
 .session-item { display:flex; gap:.6rem; padding:.7rem 0; border-bottom:1px solid var(--line); align-items:flex-start; font-size:.75rem; }.session-item .check { color:var(--accent); }.session-item>div { min-width:0; flex:1; }.session-item p { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }.session-item small { color:var(--muted); font-size:.625rem; }
 .aside-note { display:flex; align-items:center; gap:.8rem; margin-top:auto; padding-top:1.5rem; }.aside-note svg { width:1.75rem; height:1.75rem; color:var(--accent); }.aside-note p { color:var(--muted); font-size:.6875rem; line-height:1.65; }

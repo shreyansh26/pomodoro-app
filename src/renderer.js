@@ -151,6 +151,9 @@ $('#reset').addEventListener('click', () => act('reset'));
 $('#skip').addEventListener('click', () => act('skip'));
 document.querySelectorAll('[data-mode]').forEach(button => button.addEventListener('click', () => act('mode', button.dataset.mode)));
 $('#task').addEventListener('input', () => act('task', $('#task').value));
+$('#task').addEventListener('keydown', event => {
+  if (event.key === 'Enter' && !event.isComposing) { event.preventDefault(); event.currentTarget.blur(); }
+});
 $('#settings-button').addEventListener('click', openSettings);
 $('#close-settings').addEventListener('click', () => dialog.close());
 $('#history-button').addEventListener('click', openHistory);
@@ -181,7 +184,7 @@ $('#restore-defaults').addEventListener('click', () => {
 });
 document.addEventListener('keydown', event => {
   if ((event.metaKey || event.ctrlKey) && event.key === ',') { event.preventDefault(); openSettings(); return; }
-  if (dialog.open || historyDialog.open || event.metaKey || event.ctrlKey || event.altKey || event.repeat || event.target.closest('input,select,textarea,button,a')) return;
+  if (dialog.open || historyDialog.open || event.metaKey || event.ctrlKey || event.altKey || event.repeat || event.target.closest('input,select,textarea,button,a,#session-list')) return;
   const actions = { ' ': 'toggle', r: 'reset', s: 'skip' };
   if (actions[event.key.toLowerCase()]) { event.preventDefault(); act(actions[event.key.toLowerCase()]); }
 });

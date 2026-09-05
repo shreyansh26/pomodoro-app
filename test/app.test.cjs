@@ -65,7 +65,12 @@ test('desktop flow, preferences, persistence, completion, security and responsiv
     const paused = await page.locator('#time').textContent();
     await page.waitForTimeout(1200); assert.equal(await page.locator('#time').textContent(), paused);
     await page.locator('#task').fill('Build something meaningful');
-    await page.locator('#task').press('Tab');
+    await page.locator('#task').dispatchEvent('keydown', { key:'Enter', isComposing:true });
+    assert.equal(await page.locator('#task').evaluate(input => document.activeElement === input), true, 'IME confirmation keeps editing active');
+    await page.locator('#task').press('Enter');
+    assert.equal(await page.locator('#task').evaluate(input => document.activeElement === input), false, 'Enter finishes editing the session name');
+    assert.equal((await page.evaluate(() => window.still.getState())).task, 'Build something meaningful');
+    assert.equal(await page.locator('#time').textContent(), paused);
     await page.getByRole('button', { name: 'Open preferences' }).click();
     await page.locator('[name=focus]').fill('30');
     await page.locator('[name=theme]').selectOption('dark');
@@ -168,6 +173,27 @@ test('desktop flow, preferences, persistence, completion, security and responsiv
     await page.evaluate(() => window.still.action('settings', { theme:'light' }));
     await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setSize(1020, 840));
     await page.screenshot({ path: path.join(artifacts, 'still-completed.png') });
+    await app.close(); app = null;
+    const fullDay = new Timer(); fullDay.configure({ theme:'dark', sound:false, notifications:false });
+    fullDay.history = Array.from({ length:7 }, (_, i) => ({ at:Date.now() - i, minutes:25, task:`Focus session ${7 - i}` }));
+    await fs.writeFile(path.join(data, 'still-state.json'), JSON.stringify(fullDay.serialize(Date.now())));
+    page = await launch();
+    assert.equal(await page.locator('#session-list .session-item').count(), 7);
+    assert.equal(await page.locator('#session-list .session-item p').last().textContent(), 'Focus session 1');
+    assert.equal(await page.locator('#session-list').evaluate(list => list.scrollHeight > list.clientHeight), true, 'all sessions are available within a scrollable sidebar');
+    await page.screenshot({ path:path.join(artifacts, 'still-moments-scroll.png') });
+    await page.locator('#session-list').focus();
+    await page.keyboard.press('End');
+    await page.waitForFunction(() => {
+      const list = document.querySelector('#session-list');
+      return Math.abs(list.scrollHeight - list.clientHeight - list.scrollTop) < 1;
+    });
+    const scrollTop = await page.locator('#session-list').evaluate(list => list.scrollTop);
+    await page.waitForTimeout(1100);
+    assert.equal(await page.locator('#session-list').evaluate(list => list.scrollTop), scrollTop, 'timer ticks preserve list scroll position');
+    await page.keyboard.press('Space');
+    assert.equal((await page.evaluate(() => window.still.getState())).running, false, 'scrolling the list must not start the timer');
+    await page.screenshot({ path:path.join(artifacts, 'still-moments-scrolled.png') });
     assert.deepEqual(errors, []);
   } finally {
     if (app) await app.close();

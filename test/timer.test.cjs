@@ -90,7 +90,7 @@ test('calendar returns every session on a local day, with totals and date valida
   assert.equal(day.minutes, 200);
   assert.equal(day.sessions.length, 8);
   assert.equal(day.sessions[0].task, 'Session 7');
-  assert.equal(timer.snapshot(leapDay).today.sessions.length, 5);
+  assert.equal(timer.snapshot(leapDay).today.sessions.length, 8);
   assert.equal(timer.snapshot(leapDay).today.count, 8);
   assert.deepEqual(timer.daySummary('2024-02-28'), { date:'2024-02-28', count:0, minutes:0, sessions:[] });
   for (const date of [null, {}, '', '2024-2-29', '2023-02-29', '2024-02-30', '2024-13-01']) assert.throws(() => timer.daySummary(date), /Invalid calendar date/);
