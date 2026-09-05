@@ -70,5 +70,3 @@ Plain HTML/CSS/JavaScript, Electron, and Electron Builder. No frontend build ste
 - `src/preload.cjs` — narrowly scoped desktop bridge.
 - `src/index.html`, `src/style.css`, `src/renderer.js` — interface.
 - `test/` — timer and desktop checks.
-
-Git author: **Shreyansh Singh** · **shreyansh.pettswood@gmail.com** (repository-local configuration).
