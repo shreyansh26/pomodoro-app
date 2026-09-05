@@ -123,9 +123,11 @@ else {
     ipcMain.handle('get-state', event => { if (!trusted(event)) throw new Error('Untrusted sender'); return tick(); });
     ipcMain.handle('action', (event, action, value) => { if (!trusted(event)) throw new Error('Untrusted sender'); return act(action, value); });
     try {
-      const icon = nativeImage.createFromPath(path.join(__dirname, process.platform === 'darwin' ? '../assets/trayTemplate.png' : '../assets/icon.png'));
+      const icon = nativeImage.createFromPath(path.join(__dirname, process.platform === 'darwin' ? '../assets/trayTemplate.png' : '../assets/icon.png'))
+        .resize({ width: process.platform === 'darwin' ? 16 : 24 });
+      // Resizing returns a new image, so mark the final image for native menu-bar tinting.
       if (process.platform === 'darwin') icon.setTemplateImage(true);
-      tray = new Tray(icon.resize({ width: process.platform === 'darwin' ? 18 : 24 }));
+      tray = new Tray(icon);
       tray.on('click', show);
     } catch (error) { console.error('Tray unavailable:', error.message); }
     win.on('close', event => { if (!quitting && tray) { event.preventDefault(); win.hide(); } });

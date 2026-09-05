@@ -10,10 +10,29 @@ const { Timer } = require('../src/timer.cjs');
 test('desktop flow, preferences, persistence, completion, security and responsive layouts', { timeout: 120000 }, async () => {
   const data = await fs.mkdtemp(path.join(os.tmpdir(), 'still-test-'));
   const artifacts = path.resolve('artifacts'); await fs.mkdir(artifacts, { recursive: true });
+  const trayProbe = path.join(data, 'tray-probe.cjs');
+  await fs.writeFile(trayProbe, `
+    const electron = require('electron');
+    const NativeTray = electron.Tray;
+    const Tray = class extends NativeTray {
+      constructor(image) {
+        super(image);
+        globalThis.stillTrayImageIsTemplate = image.isTemplateImage();
+        globalThis.stillTrayImageSize = image.getSize();
+      }
+    };
+    const Module = require('node:module');
+    const load = Module._load;
+    Module._load = function(name, ...args) {
+      return name === 'electron' ? { ...electron, Tray } : load.call(this, name, ...args);
+    };
+    require(${JSON.stringify(path.resolve('src/main.cjs'))});
+    Module._load = load;
+  `);
   let app;
   const launch = async () => {
     const env = { ...process.env, STILL_TEST_DATA: data }; delete env.ELECTRON_RUN_AS_NODE;
-    app = await electron.launch({ executablePath, args: [path.resolve('.')], env });
+    app = await electron.launch({ executablePath, args: [process.platform === 'darwin' ? trayProbe : path.resolve('.')], env });
     const page = await app.firstWindow(); await page.locator('#toggle-label').waitFor();
     await page.waitForFunction(() => !!window.still && document.title.includes('— Still'));
     return page;
@@ -21,6 +40,8 @@ test('desktop flow, preferences, persistence, completion, security and responsiv
   try {
     let page = await launch();
     const errors = []; page.on('pageerror', error => errors.push(error.message));
+    if (process.platform === 'darwin') assert.equal(await app.evaluate(() => globalThis.stillTrayImageIsTemplate), true, 'the final tray image is a macOS template after resizing');
+    if (process.platform === 'darwin') assert.deepEqual(await app.evaluate(() => globalThis.stillTrayImageSize), { width:16, height:16 }, 'menu-bar icon uses the standard square size beside the native countdown');
     assert.equal(await page.locator('#time').textContent(), '25:00');
     assert.equal(await page.evaluate(() => typeof window.require), 'undefined');
     assert.equal(await page.evaluate(() => typeof window.process), 'undefined');
