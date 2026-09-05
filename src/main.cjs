@@ -121,6 +121,7 @@ else {
     win.webContents.session.setPermissionRequestHandler((_contents, _permission, callback) => callback(false));
     const trusted = event => event.sender === win.webContents && event.senderFrame === win.webContents.mainFrame && event.senderFrame.url === pathToFileURL(entry).href;
     ipcMain.handle('get-state', event => { if (!trusted(event)) throw new Error('Untrusted sender'); return tick(); });
+    ipcMain.handle('get-day', (event, date) => { if (!trusted(event)) throw new Error('Untrusted sender'); return timer.daySummary(date); });
     ipcMain.handle('action', (event, action, value) => { if (!trusted(event)) throw new Error('Untrusted sender'); return act(action, value); });
     try {
       const icon = nativeImage.createFromPath(path.join(__dirname, process.platform === 'darwin' ? '../assets/trayTemplate.png' : '../assets/icon.png'))

@@ -81,11 +81,19 @@ class Timer {
     if (this.deadline === null && this.remainingMs === this.totalMs) this.select(this.mode);
   }
 
+  daySummary(date) {
+    if (typeof date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(date) || dayKey(new Date(`${date}T12:00:00`)) !== date) {
+      throw new Error('Invalid calendar date');
+    }
+    const sessions = this.history.filter(item => dayKey(item.at) === date).sort((a, b) => b.at - a.at);
+    return { date, count: sessions.length, minutes: sessions.reduce((sum, item) => sum + item.minutes, 0), sessions };
+  }
+
   snapshot(now) {
-    const today = this.history.filter(item => dayKey(item.at) === dayKey(now));
+    const today = this.daySummary(dayKey(now));
     return { settings: this.settings, mode: this.mode, totalMs: this.totalMs, cycle: this.cycle,
       task: this.task, remainingMs: this.remaining(now), running: this.deadline !== null,
-      today: { count: today.length, minutes: today.reduce((sum, item) => sum + item.minutes, 0), sessions: today.slice(-5).reverse() } };
+      today: { ...today, sessions: today.sessions.slice(0, 5) } };
   }
 
   serialize(now) {

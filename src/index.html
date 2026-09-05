@@ -13,7 +13,7 @@
   <div class="app">
     <header class="app-header">
       <div class="brand" aria-label="Still"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>still<span class="brand-dot">.</span></div>
-      <div class="header-right"><span class="tagline">A LITTLE SPACE TO FOCUS</span><button class="icon-button" id="settings-button" aria-label="Open preferences" title="Preferences (⌘ / Ctrl + ,)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="3"/><circle cx="15" cy="17" r="3"/></svg></button></div>
+      <div class="header-right"><span class="tagline">A LITTLE SPACE TO FOCUS</span><div class="header-actions"><button class="icon-button" id="history-button" aria-label="Open session calendar" title="Session calendar"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="16" rx="2"/><path d="M8 3v4M16 3v4M4 11h16M8 15h2M14 15h2"/></svg></button><button class="icon-button" id="settings-button" aria-label="Open preferences" title="Preferences (⌘ / Ctrl + ,)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="3"/><circle cx="15" cy="17" r="3"/></svg></button></div></div>
     </header>
     <main>
       <section class="workspace" aria-label="Pomodoro timer">
@@ -46,6 +46,22 @@
     <footer><span><span class="status-dot"></span><span id="footer-status">Your pace. Your space.</span></span><span class="keyboard-hint"><kbd>space</kbd> to start or pause</span></footer>
   </div>
   <div class="toast" id="toast" role="status" hidden></div>
+  <dialog id="history-dialog" aria-labelledby="history-title">
+    <div class="dialog-heading"><div><span class="eyebrow">A LITTLE LOOK BACK</span><h2 id="history-title">Time, well spent.</h2></div><button type="button" class="icon-button" id="close-history" aria-label="Close session calendar">×</button></div>
+    <p class="settings-intro">The small moments that made your day.</p>
+    <div class="history-navigation">
+      <button class="icon-button" id="history-previous" aria-label="Previous day"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 6-6 6 6 6"/></svg></button>
+      <input type="date" id="history-date" min="1970-01-01" aria-label="Session date" required>
+      <button class="icon-button" id="history-next" aria-label="Next day"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m10 6 6 6-6 6"/></svg></button>
+      <button class="text-button" id="history-today">Today</button>
+    </div>
+    <div id="history-results" aria-busy="false">
+      <h3 id="history-day-label"></h3>
+      <div class="stats history-stats" id="history-summary" role="status"><div><strong id="history-count">0</strong><span>completed sessions</span></div><div><strong id="history-total">0h 0m</strong><span>focused time</span></div></div>
+      <div id="history-list" class="history-sessions"></div>
+    </div>
+    <p class="history-note">Completed focus sessions · Your local time</p>
+  </dialog>
   <dialog id="settings-dialog" aria-labelledby="settings-title">
     <form id="settings-form">
       <div class="dialog-heading"><div><span class="eyebrow">MAKE YOURSELF AT HOME</span><h2 id="settings-title">Your rhythm.</h2></div><button type="button" class="icon-button" id="close-settings" aria-label="Close preferences">×</button></div>

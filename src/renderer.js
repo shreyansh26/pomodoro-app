@@ -5,6 +5,68 @@ let lastMoments = '';
 let lastStorageError = '';
 const dialog = $('#settings-dialog');
 const form = $('#settings-form');
+const historyDialog = $('#history-dialog');
+const historyDate = $('#history-date');
+let historyQuery = 0;
+
+function localDate(date = new Date()) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
+function sessionItem(session) {
+  const item = document.createElement('div'); item.className = 'session-item';
+  const check = document.createElement('span'); check.className = 'check'; check.textContent = '✓';
+  const detail = document.createElement('div');
+  const title = document.createElement('p'); title.textContent = session.task.trim() || 'A moment of focus'; title.title = title.textContent;
+  const metadata = document.createElement('small'); metadata.textContent = `${session.minutes} min · ${new Date(session.at).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}`;
+  detail.append(title, metadata); item.append(check, detail); return item;
+}
+
+async function loadDay() {
+  const query = ++historyQuery;
+  const date = historyDate.value;
+  historyDate.max = localDate();
+  $('#history-previous').disabled = !date || date <= historyDate.min;
+  $('#history-next').disabled = !date || date >= historyDate.max;
+  $('#history-summary').hidden = true;
+  $('#history-results').setAttribute('aria-busy', 'false');
+  $('#history-day-label').textContent = '';
+  const list = $('#history-list');
+  if (!historyDate.checkValidity()) { list.textContent = 'Choose a valid date to see your sessions.'; return; }
+  $('#history-day-label').textContent = new Date(`${date}T12:00:00`).toLocaleDateString(undefined, { weekday:'long', month:'long', day:'numeric', year:'numeric' });
+  list.textContent = 'Loading your moments…';
+  $('#history-results').setAttribute('aria-busy', 'true');
+  try {
+    const day = await window.still.getDay(date);
+    if (query !== historyQuery || !historyDialog.open) return;
+    $('#history-count').textContent = day.count;
+    $('#history-total').textContent = `${Math.floor(day.minutes / 60)}h ${day.minutes % 60}m`;
+    $('#history-summary').hidden = false;
+    if (day.sessions.length) list.replaceChildren(...day.sessions.map(sessionItem));
+    else list.innerHTML = '<div class="empty-state"><span class="sprout" aria-hidden="true">✳</span><p>A little room to begin.</p><span>No completed focus sessions on this day.</span></div>';
+  } catch (error) {
+    if (query === historyQuery) list.textContent = 'Couldn’t load this day. Select a date to try again.';
+    console.error(error);
+  } finally {
+    if (query === historyQuery) $('#history-results').setAttribute('aria-busy', 'false');
+  }
+}
+
+function openHistory() {
+  if (historyDialog.open) return;
+  if (dialog.open) dialog.close();
+  historyDate.value = localDate();
+  historyDialog.showModal();
+  loadDay();
+}
+
+function moveDay(offset) {
+  if (!historyDate.value) return;
+  const date = new Date(`${historyDate.value}T12:00:00`);
+  date.setDate(date.getDate() + offset);
+  historyDate.value = localDate(date);
+  loadDay();
+}
 
 function toast(message) {
   clearTimeout(toastTimeout);
@@ -59,14 +121,7 @@ function render(next) {
     lastMoments = moments;
     const list = $('#session-list');
     if (!today.sessions.length) list.innerHTML = '<div class="empty-state"><span class="sprout" aria-hidden="true">✳</span><p>A clear page.<br>A little possibility.</p><span>Your completed focus sessions<br>will find a home here.</span></div>';
-    else list.replaceChildren(...today.sessions.map(session => {
-      const item = document.createElement('div'); item.className = 'session-item';
-      const check = document.createElement('span'); check.className = 'check'; check.textContent = '✓';
-      const detail = document.createElement('div');
-      const title = document.createElement('p'); title.textContent = session.task || 'A moment of focus'; title.title = title.textContent;
-      const metadata = document.createElement('small'); metadata.textContent = `${session.minutes} min · ${new Date(session.at).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}`;
-      detail.append(title, metadata); item.append(check, detail); return item;
-    }));
+    else list.replaceChildren(...today.sessions.map(sessionItem));
   }
   $('#footer-status').textContent = state.storageError ? 'Changes aren’t saved — check disk space.' : running ? 'A little less noise. A little more focus.' : 'Your pace. Your space.';
   if (state.storageError && state.storageError !== lastStorageError) toast(state.storageError);
@@ -75,6 +130,7 @@ function render(next) {
 
 function openSettings() {
   if (!state || dialog.open) return;
+  if (historyDialog.open) historyDialog.close();
   for (const [key, value] of Object.entries(state.settings)) {
     const input = form.elements.namedItem(key);
     if (input.type === 'checkbox') input.checked = value; else input.value = value;
@@ -89,9 +145,16 @@ document.querySelectorAll('[data-mode]').forEach(button => button.addEventListen
 $('#task').addEventListener('input', () => act('task', $('#task').value));
 $('#settings-button').addEventListener('click', openSettings);
 $('#close-settings').addEventListener('click', () => dialog.close());
-dialog.addEventListener('click', event => {
-  const rect = dialog.getBoundingClientRect();
-  if (event.target === dialog && (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom)) dialog.close();
+$('#history-button').addEventListener('click', openHistory);
+$('#close-history').addEventListener('click', () => historyDialog.close());
+historyDialog.addEventListener('close', () => { historyQuery++; });
+historyDate.addEventListener('change', loadDay);
+$('#history-previous').addEventListener('click', () => moveDay(-1));
+$('#history-next').addEventListener('click', () => moveDay(1));
+$('#history-today').addEventListener('click', () => { historyDate.value = localDate(); loadDay(); });
+for (const modal of [dialog, historyDialog]) modal.addEventListener('click', event => {
+  const rect = modal.getBoundingClientRect();
+  if (event.target === modal && (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom)) modal.close();
 });
 form.addEventListener('submit', async event => {
   event.preventDefault();
@@ -110,7 +173,7 @@ $('#restore-defaults').addEventListener('click', () => {
 });
 document.addEventListener('keydown', event => {
   if ((event.metaKey || event.ctrlKey) && event.key === ',') { event.preventDefault(); openSettings(); return; }
-  if (dialog.open || event.metaKey || event.ctrlKey || event.altKey || event.repeat || event.target.closest('input,select,textarea,button,a')) return;
+  if (dialog.open || historyDialog.open || event.metaKey || event.ctrlKey || event.altKey || event.repeat || event.target.closest('input,select,textarea,button,a')) return;
   const actions = { ' ': 'toggle', r: 'reset', s: 'skip' };
   if (actions[event.key.toLowerCase()]) { event.preventDefault(); act(actions[event.key.toLowerCase()]); }
 });
@@ -118,6 +181,7 @@ document.addEventListener('keydown', event => {
 window.still.onState(render);
 window.still.onPreferences(openSettings);
 window.still.onComplete(async ({ sound }) => {
+  if (historyDialog.open) loadDay();
   toast('A session complete. Take a breath.');
   if (!sound) return;
   try {

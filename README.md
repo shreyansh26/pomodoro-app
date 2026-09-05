@@ -9,6 +9,7 @@ A little space to focus. An offline Pomodoro desktop app for macOS, Windows, and
 - Focus, short break, and long break sessions; a long break after four completed focus sessions by default.
 - Start, pause, resume, reset, or skip. Skips don't count toward your progress.
 - One focus intention, a daily session goal, focused minutes, and your five most recent sessions today.
+- A session calendar in the header: choose a day to see all its saved focus sessions, names, completion times, session count, and total focused hours/minutes.
 - Custom session lengths (1–120 minutes), long-break interval, and daily goal.
 - Light, dark, and system appearance; optional completion chime and native notifications.
 - Optional automatic session starts and always-on-top window.
@@ -63,7 +64,7 @@ The timer lives in Electron's main process, with a wall-clock deadline rather th
 
 Quit saves the deadline; launching again resumes or completes that session. Paused sessions stay paused. Changing durations doesn't alter a running or paused session; reset or the next session uses the new duration. Switching session types resets the current countdown. A focus intention remains until you edit it.
 
-State is atomically replaced in `still-state.json` in Electron's per-user app-data directory (normally `~/Library/Application Support/Still` on macOS, `%APPDATA%/Still` on Windows, and `~/.config/Still` on Linux). The most recent 2,000 completed sessions are retained; the UI shows today's totals and last five sessions. Invalid JSON is backed up before recovery. If a write fails, the app visibly reports that changes aren't saved.
+State is atomically replaced in `still-state.json` in Electron's per-user app-data directory (normally `~/Library/Application Support/Still` on macOS, `%APPDATA%/Still` on Windows, and `~/.config/Still` on Linux). The most recent 2,000 completed sessions are retained; the sidebar shows today's totals and last five sessions, and the calendar shows all retained sessions for a selected local day. Breaks, skipped sessions, and unfinished sessions are not counted. Invalid JSON is backed up before recovery. If a write fails, the app visibly reports that changes aren't saved.
 
 ## Verify
 
