@@ -8,6 +8,7 @@ const form = $('#settings-form');
 const historyDialog = $('#history-dialog');
 const historyDate = $('#history-date');
 let historyQuery = 0;
+let historyRequestedDate = '';
 
 function localDate(date = new Date()) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
@@ -22,9 +23,11 @@ function sessionItem(session) {
   detail.append(title, metadata); item.append(check, detail); return item;
 }
 
-async function loadDay() {
-  const query = ++historyQuery;
+async function loadDay({ force = false } = {}) {
   const date = historyDate.value;
+  if (date && date === historyRequestedDate && !force) return;
+  const query = ++historyQuery;
+  historyRequestedDate = '';
   historyDate.max = localDate();
   $('#history-previous').disabled = !date || date <= historyDate.min;
   $('#history-next').disabled = !date || date >= historyDate.max;
@@ -33,6 +36,7 @@ async function loadDay() {
   $('#history-day-label').textContent = '';
   const list = $('#history-list');
   if (!historyDate.checkValidity()) { list.textContent = 'Choose a valid date to see your sessions.'; return; }
+  historyRequestedDate = date;
   $('#history-day-label').textContent = new Date(`${date}T12:00:00`).toLocaleDateString(undefined, { weekday:'long', month:'long', day:'numeric', year:'numeric' });
   list.textContent = 'Loading your moments…';
   $('#history-results').setAttribute('aria-busy', 'true');
@@ -45,7 +49,10 @@ async function loadDay() {
     if (day.sessions.length) list.replaceChildren(...day.sessions.map(sessionItem));
     else list.innerHTML = '<div class="empty-state"><span class="sprout" aria-hidden="true">✳</span><p>A little room to begin.</p><span>No completed focus sessions on this day.</span></div>';
   } catch (error) {
-    if (query === historyQuery) list.textContent = 'Couldn’t load this day. Select a date to try again.';
+    if (query === historyQuery) {
+      historyRequestedDate = '';
+      list.textContent = 'Couldn’t load this day. Select a date to try again.';
+    }
     console.error(error);
   } finally {
     if (query === historyQuery) $('#history-results').setAttribute('aria-busy', 'false');
@@ -147,7 +154,7 @@ $('#settings-button').addEventListener('click', openSettings);
 $('#close-settings').addEventListener('click', () => dialog.close());
 $('#history-button').addEventListener('click', openHistory);
 $('#close-history').addEventListener('click', () => historyDialog.close());
-historyDialog.addEventListener('close', () => { historyQuery++; });
+historyDialog.addEventListener('close', () => { historyQuery++; historyRequestedDate = ''; });
 historyDate.addEventListener('change', loadDay);
 $('#history-previous').addEventListener('click', () => moveDay(-1));
 $('#history-next').addEventListener('click', () => moveDay(1));
@@ -181,7 +188,7 @@ document.addEventListener('keydown', event => {
 window.still.onState(render);
 window.still.onPreferences(openSettings);
 window.still.onComplete(async ({ sound }) => {
-  if (historyDialog.open) loadDay();
+  if (historyDialog.open) loadDay({ force:true });
   toast('A session complete. Take a breath.');
   if (!sound) return;
   try {

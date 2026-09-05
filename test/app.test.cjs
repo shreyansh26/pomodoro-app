@@ -144,6 +144,14 @@ test('desktop flow, preferences, persistence, completion, security and responsiv
     await page.waitForFunction(() => document.querySelector('#history-count').textContent === '8');
     await page.getByRole('button', { name:'Today', exact:true }).click();
     await page.waitForFunction(() => document.querySelector('#history-count').textContent === '1');
+    await page.evaluate(() => {
+      window.calendarMutations = 0;
+      window.calendarObserver = new MutationObserver(records => { window.calendarMutations += records.length; });
+      window.calendarObserver.observe(document.querySelector('#history-results'), { subtree:true, childList:true, attributes:true, characterData:true });
+    });
+    for (let i = 0; i < 3; i++) await page.getByRole('button', { name:'Today', exact:true }).click();
+    await page.locator('#history-date').dispatchEvent('change');
+    assert.equal(await page.evaluate(() => { window.calendarObserver.disconnect(); return window.calendarMutations; }), 0, 'reselecting the displayed day must not clear or redraw the calendar');
     assert.equal(await page.evaluate(async () => { try { await window.still.getDay('2024-02-30'); return false; } catch { return true; } }), true);
     await page.keyboard.press('Escape');
     assert.equal(await page.locator('#history-dialog').isVisible(), false);
