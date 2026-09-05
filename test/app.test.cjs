@@ -46,6 +46,16 @@ test('desktop flow, preferences, persistence, completion, security and responsiv
     assert.equal(await page.evaluate(() => typeof window.require), 'undefined');
     assert.equal(await page.evaluate(() => typeof window.process), 'undefined');
     await page.evaluate(() => window.still.action('settings', { theme: 'light' }));
+    const durationLabels = await page.evaluate(async () => {
+      const snapshot = await window.still.getState();
+      const labels = [0, 59, 60, 100, 125].map(minutes => {
+        render({ ...snapshot, today:{ ...snapshot.today, minutes } });
+        return document.querySelector('#focus-minutes').textContent;
+      });
+      render(snapshot);
+      return labels;
+    });
+    assert.deepEqual(durationLabels, ['0h 0m', '0h 59m', '1h 0m', '1h 40m', '2h 5m']);
     // Small CI displays can constrain the native window below the requested height.
     if (await page.evaluate(() => innerHeight >= 840)) assert.equal(await page.evaluate(() => document.documentElement.scrollHeight <= innerHeight), true, 'default window fits without scrolling');
     await page.screenshot({ path: path.join(artifacts, 'still-light.png') });

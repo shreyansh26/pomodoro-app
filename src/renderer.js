@@ -9,6 +9,7 @@ const historyDialog = $('#history-dialog');
 const historyDate = $('#history-date');
 let historyQuery = 0;
 let historyRequestedDate = '';
+const formatDuration = minutes => `${Math.floor(minutes / 60)}h ${minutes % 60}m`;
 
 function localDate(date = new Date()) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
@@ -44,7 +45,7 @@ async function loadDay({ force = false } = {}) {
     const day = await window.still.getDay(date);
     if (query !== historyQuery || !historyDialog.open) return;
     $('#history-count').textContent = day.count;
-    $('#history-total').textContent = `${Math.floor(day.minutes / 60)}h ${day.minutes % 60}m`;
+    $('#history-total').textContent = formatDuration(day.minutes);
     $('#history-summary').hidden = false;
     if (day.sessions.length) list.replaceChildren(...day.sessions.map(sessionItem));
     else list.innerHTML = '<div class="empty-state"><span class="sprout" aria-hidden="true">✳</span><p>A little room to begin.</p><span>No completed focus sessions on this day.</span></div>';
@@ -116,7 +117,7 @@ function render(next) {
   }));
   if (document.activeElement !== $('#task')) $('#task').value = state.task;
   $('#focus-count').innerHTML = `${today.count}<span> / ${settings.goal}</span>`;
-  $('#focus-minutes').innerHTML = `${today.minutes >= 60 ? (today.minutes / 60).toFixed(1) : today.minutes}<span> ${today.minutes >= 60 ? 'hrs' : 'min'}</span>`;
+  $('#focus-minutes').textContent = formatDuration(today.minutes);
   $('#goal-track').replaceChildren(...Array.from({ length: settings.goal }, (_, i) => {
     const segment = document.createElement('i'); segment.className = i < today.count ? 'done' : ''; return segment;
   }));
