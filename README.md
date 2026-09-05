@@ -34,7 +34,20 @@ npm run dist:win    # Windows: x64 setup EXE
 npm run dist:linux  # Linux: x64 AppImage
 ```
 
-Outputs are written to `dist/`. Build on the target OS for the most reliable results. The included GitHub Actions workflow runs tests and produces downloadable installer artifacts for all three systems on pushes to `main`, tags, pull requests, or manual dispatch. Creating this local repository does not publish it to GitHub or run that workflow.
+Outputs are written to `dist/`. Build on the target OS for the most reliable results. The included GitHub Actions workflow runs tests and produces downloadable installer artifacts for all three systems on pushes to `main`, tags, pull requests, or manual dispatch.
+
+### Publish downloads with GitHub Actions
+
+Push a version tag matching `package.json` to publish a [GitHub Release](https://github.com/shreyansh26/pomodoro-app/releases). For the current version:
+
+```sh
+git tag v1.0.1
+git push origin v1.0.1
+```
+
+The workflow checks that the tag matches the app version, waits for all three platform builds and tests to pass, then attaches the macOS DMGs/ZIPs, Windows installer, and Linux AppImage to the release. Screenshots stay in Actions artifacts. The release job uses GitHub's built-in token; no additional secret is needed. Branch pushes and pull requests only build artifacts.
+
+For the next version, run `npm version patch` and `git push origin main --follow-tags`. This commits the version bump and creates the next version tag. Published releases are not overwritten; use a new version for changed installers. Download the latest published version from [Releases](https://github.com/shreyansh26/pomodoro-app/releases/latest).
 
 - **macOS:** open the DMG and drag Still into Applications.
 - **Windows:** run the setup EXE; choose your installation location.
