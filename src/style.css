@@ -94,5 +94,6 @@ dialog { scrollbar-width:thin; }
 .dialog-footer { position:sticky; bottom:-1.7rem; background:var(--bg); padding:.75rem 0; margin-bottom:-1rem; border-top:1px solid var(--line); }
 @media (min-width:640px) { .app { padding:0 2.5rem; }.tagline,.keyboard-hint { display:inline; }.workspace { padding-top:1.5rem; } }
 @media (min-width:768px) { main { grid-template-columns:minmax(0,1fr) 16.5rem; gap:2rem; }.today { margin:1.5rem 0; padding:1.5rem; }.workspace { padding-bottom:1.5rem; }.app { padding:0 2.75rem; }.stats { gap:1rem; }.stats>div+div { padding-left:1rem; } }
+@media (min-width:768px) { .recent { flex:1; display:flex; flex-direction:column; }#session-list { flex:1 1 0; min-height:10rem; max-height:none; } }
 @media (min-width:1024px) { main { gap:clamp(2rem,4vw,5rem); grid-template-columns:minmax(0,1fr) clamp(18rem,23vw,24rem); }.app { padding:0 clamp(2.75rem,4vw,6rem); }.today { padding:clamp(1.8rem,2.4vw,3rem); }.today h2 { font-size:clamp(1.9rem,2.6vw,2.6rem); } }
 @media (prefers-reduced-motion:reduce) { *,*::before { transition:none!important; } }

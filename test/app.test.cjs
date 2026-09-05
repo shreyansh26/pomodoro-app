@@ -205,6 +205,16 @@ test('desktop flow, preferences, persistence, completion, security and responsiv
     await page.keyboard.press('Space');
     assert.equal((await page.evaluate(() => window.still.getState())).running, false, 'scrolling the list must not start the timer');
     await page.screenshot({ path:path.join(artifacts, 'still-moments-scrolled.png') });
+    // Emulate a tall viewport even when the CI runner has a small physical display.
+    await page.setViewportSize({ width:1440, height:1200 });
+    assert.equal(await page.locator('#session-list').evaluate(list => list.scrollHeight === list.clientHeight), true, 'a tall panel shows every session without unnecessary scrolling');
+    assert.equal(await page.evaluate(() => document.documentElement.scrollHeight <= innerHeight), true, 'the expanded session list stays within the window');
+    await page.screenshot({ path:path.join(artifacts, 'still-moments-tall.png') });
+    await page.setViewportSize({ width:1440, height:790 });
+    assert.equal(await page.locator('#session-list').evaluate(list => list.scrollHeight > list.clientHeight), true, 'the list scrolls again when the window is shorter');
+    await page.setViewportSize({ width:390, height:790 });
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, 'a populated sidebar fits the narrow layout');
+    await page.screenshot({ path:path.join(artifacts, 'still-moments-narrow.png'), fullPage:true });
     assert.deepEqual(errors, []);
   } finally {
     if (app) await app.close();
