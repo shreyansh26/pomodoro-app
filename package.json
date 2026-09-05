@@ -1,0 +1,70 @@
+{
+  "name": "still-pomodoro",
+  "productName": "Still",
+  "desktopName": "com.shreyanshsingh.still.desktop",
+  "version": "1.0.0",
+  "description": "A quiet place to focus. An offline Pomodoro timer for your desktop.",
+  "author": {
+    "name": "Shreyansh Singh",
+    "email": "shreyansh.pettswood@gmail.com"
+  },
+  "private": true,
+  "main": "src/main.cjs",
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test test/timer.test.cjs",
+    "test:app": "node --test test/app.test.cjs",
+    "dist": "electron-builder --publish never",
+    "dist:mac": "electron-builder --mac --arm64 --x64 --publish never",
+    "dist:win": "electron-builder --win --x64 --publish never",
+    "dist:linux": "electron-builder --linux --x64 --publish never"
+  },
+  "build": {
+    "appId": "com.shreyanshsingh.still",
+    "directories": {
+      "output": "dist",
+      "buildResources": "assets"
+    },
+    "files": [
+      "src/**/*",
+      "assets/icon.png",
+      "assets/trayTemplate.png",
+      "package.json"
+    ],
+    "artifactName": "Still-${version}-${os}-${arch}.${ext}",
+    "mac": {
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "category": "public.app-category.productivity",
+      "identity": "-",
+      "icon": "assets/icon.png"
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "assets/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true
+    },
+    "linux": {
+      "target": [
+        "AppImage"
+      ],
+      "category": "Utility",
+      "syncDesktopName": true,
+      "icon": "assets/icon.png",
+      "maintainer": "Shreyansh Singh <shreyansh.pettswood@gmail.com>"
+    }
+  },
+  "devDependencies": {
+    "electron": "44.2.0",
+    "electron-builder": "26.15.3",
+    "playwright": "1.63.0"
+  }
+}

@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; media-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <title>Still — a little space to focus</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="renderer.js" defer></script>
+</head>
+<body>
+  <div class="titlebar" aria-hidden="true"></div>
+  <div class="app">
+    <header class="app-header">
+      <div class="brand" aria-label="Still"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>still<span class="brand-dot">.</span></div>
+      <div class="header-right"><span class="tagline">A LITTLE SPACE TO FOCUS</span><button class="icon-button" id="settings-button" aria-label="Open preferences" title="Preferences (⌘ / Ctrl + ,)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="3"/><circle cx="15" cy="17" r="3"/></svg></button></div>
+    </header>
+    <main>
+      <section class="workspace" aria-label="Pomodoro timer">
+        <div class="intro"><span class="eyebrow" id="session-eyebrow">MAKE ROOM FOR WHAT MATTERS</span><h1 id="headline">One thing at a time.</h1></div>
+        <div class="mode-switch" role="group" aria-label="Session type">
+          <button data-mode="focus" aria-pressed="true">Focus</button><button data-mode="short" aria-pressed="false">Short break</button><button data-mode="long" aria-pressed="false">Long break</button>
+        </div>
+        <div class="timer-face">
+          <svg class="timer-ring" viewBox="0 0 340 340" aria-hidden="true"><circle class="ring-track" cx="170" cy="170" r="156"/><circle id="ring-progress" cx="170" cy="170" r="156" pathLength="100"/><circle class="ring-dot" cx="170" cy="14" r="4"/></svg>
+          <div class="timer-center"><span class="timer-status" id="timer-status">TIME TO FOCUS</span><div id="time" role="timer" aria-label="25 minutes remaining">25<span>:</span>00</div><span id="timer-caption">A fresh start, just for you.</span></div>
+        </div>
+        <div class="timer-controls">
+          <button class="icon-button secondary-control" id="reset" aria-label="Reset session" title="Reset session (R)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10a8 8 0 1 1 1 7M4 4v6h6"/></svg></button>
+          <button class="primary-button" id="toggle"><svg id="play-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 10 7-10 7Z"/></svg><span id="toggle-label">Start focus</span></button>
+          <button class="icon-button secondary-control" id="skip" aria-label="Skip session" title="Skip session (S)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 5 10 7-10 7ZM19 5v14"/></svg></button>
+        </div>
+        <div class="cycle"><div id="cycle-dots" aria-hidden="true"></div><span id="cycle-label">Session 1 of 4</span></div>
+        <label class="intention"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 4 5 5-11 11H4v-5ZM12 7l5 5"/></svg><input id="task" maxlength="160" placeholder="What would you like to focus on?" aria-label="Your focus intention" autocomplete="off"></label>
+      </section>
+      <aside class="today" aria-label="Today's progress">
+        <div class="today-heading"><span class="eyebrow">YOUR DAY, GENTLY</span><span id="date"></span></div>
+        <h2>Small steps.<br>Real progress.</h2>
+        <div class="stats"><div><strong id="focus-count">0<span> / 8</span></strong><span>sessions today</span></div><div><strong id="focus-minutes">0<span> min</span></strong><span>time well spent</span></div></div>
+        <div class="goal-track" id="goal-track" aria-label="Daily focus goal"></div>
+        <p class="goal-copy" id="goal-copy">A little focus goes a long way.</p>
+        <div class="recent"><span class="eyebrow">TODAY’S MOMENTS</span><div id="session-list"><div class="empty-state"><span class="sprout" aria-hidden="true">✳</span><p>A clear page.<br>A little possibility.</p><span>Your completed focus sessions<br>will find a home here.</span></div></div></div>
+        <div class="aside-note"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 27V14M16 20C4 20 5 9 5 9s11-1 11 11Zm0-6C16 4 27 5 27 5s1 10-11 10Z"/></svg><p>You don’t have to do it all.<br>Just the next little thing.</p></div>
+      </aside>
+    </main>
+    <footer><span><span class="status-dot"></span><span id="footer-status">Your pace. Your space.</span></span><span class="keyboard-hint"><kbd>space</kbd> to start or pause</span></footer>
+  </div>
+  <div class="toast" id="toast" role="status" hidden></div>
+  <dialog id="settings-dialog" aria-labelledby="settings-title">
+    <form id="settings-form">
+      <div class="dialog-heading"><div><span class="eyebrow">MAKE YOURSELF AT HOME</span><h2 id="settings-title">Your rhythm.</h2></div><button type="button" class="icon-button" id="close-settings" aria-label="Close preferences">×</button></div>
+      <p class="settings-intro">A few small adjustments to make Still yours.</p>
+      <fieldset><legend>Session lengths <span>minutes</span></legend><div class="duration-fields"><label>Focus<input name="focus" type="number" min="1" max="120" required></label><label>Short break<input name="short" type="number" min="1" max="120" required></label><label>Long break<input name="long" type="number" min="1" max="120" required></label></div></fieldset>
+      <div class="preference-row"><label for="rounds">Long break every<span>Completed focus sessions</span></label><input id="rounds" name="rounds" type="number" min="1" max="12" required></div>
+      <div class="preference-row"><label for="goal">Daily intention<span>A gentle goal, not a deadline</span></label><input id="goal" name="goal" type="number" min="1" max="12" required></div>
+      <div class="preference-row"><label for="theme">Appearance</label><select name="theme" id="theme"><option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option></select></div>
+      <div class="toggle-grid">
+        <label><span>Completion sound</span><input name="sound" type="checkbox" role="switch"></label>
+        <label><span>Desktop notifications</span><input name="notifications" type="checkbox" role="switch"></label>
+        <label><span>Auto-start breaks</span><input name="autoBreak" type="checkbox" role="switch"></label>
+        <label><span>Auto-start focus</span><input name="autoFocus" type="checkbox" role="switch"></label>
+        <label><span>Keep window on top</span><input name="alwaysOnTop" type="checkbox" role="switch"></label>
+      </div>
+      <p class="settings-note">Duration changes apply to the next session if one is in progress. Closing the window keeps Still in your menu bar or system tray.</p>
+      <div class="dialog-footer"><button type="button" class="text-button" id="restore-defaults">Restore defaults</button><button class="primary-button" type="submit">Save preferences</button></div>
+    </form>
+  </dialog>
+</body>
+</html>
