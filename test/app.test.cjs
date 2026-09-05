@@ -196,11 +196,12 @@ test('desktop flow, preferences, persistence, completion, security and responsiv
     assert.notEqual(await page.locator('#session-list').evaluate(list => getComputedStyle(list).scrollbarColor), hiddenScrollbar, 'keyboard scrolling reveals the scrollbar');
     await page.waitForFunction(() => {
       const list = document.querySelector('#session-list');
-      return Math.abs(list.scrollHeight - list.clientHeight - list.scrollTop) < 1;
+      // Native scrolling can stop one pixel short of rounded DOM dimensions at 1× scale.
+      return Math.abs(list.scrollHeight - list.clientHeight - list.scrollTop) <= 1;
     });
     const scrollTop = await page.locator('#session-list').evaluate(list => list.scrollTop);
     await page.waitForTimeout(1100);
-    assert.equal(await page.locator('#session-list').evaluate(list => list.scrollTop), scrollTop, 'timer ticks preserve list scroll position');
+    assert.ok(Math.abs(await page.locator('#session-list').evaluate(list => list.scrollTop) - scrollTop) <= 1, 'timer ticks preserve list scroll position within native pixel rounding');
     await page.keyboard.press('Space');
     assert.equal((await page.evaluate(() => window.still.getState())).running, false, 'scrolling the list must not start the timer');
     await page.screenshot({ path:path.join(artifacts, 'still-moments-scrolled.png') });
