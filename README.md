@@ -9,7 +9,7 @@ A little space to focus. An offline Pomodoro desktop app for macOS, Windows, and
 - Focus, short break, and long break sessions; a long break after four completed focus sessions by default.
 - Start, pause, resume, reset, or skip. Skips don't count toward your progress.
 - One focus intention, a daily session goal, focused minutes, and a scrollable list of all today's saved sessions.
-- A session calendar in the header: choose a day to see all its saved focus sessions, names, completion times, session count, and total focused hours/minutes.
+- A session calendar in the header: choose a day to see all its saved focus sessions, names, start–end times, session count, and total focused hours/minutes.
 - Custom session lengths (1–120 minutes), long-break interval, and daily goal.
 - Light, dark, and system appearance; optional completion chime and native notifications.
 - Optional automatic session starts and always-on-top window.
@@ -60,7 +60,7 @@ Native notifications follow operating-system notification permissions and Do Not
 
 ## Timer and data behavior
 
-The timer lives in Electron's main process, with a wall-clock deadline rather than a decrementing counter. It keeps time when minimized, hidden, or asleep. An overdue session completes on wake or the next launch, and is credited to its original deadline's local calendar day. If auto-start is enabled, the next session starts at recovery time; Still never invents a series of completed sessions while you're away. Changing the system clock affects wall-clock timers.
+The timer lives in Electron's main process, with a wall-clock deadline rather than a decrementing counter. It keeps time when minimized, hidden, or asleep. An overdue session completes on wake or the next launch, and is credited to the local calendar day it started, including sessions crossing midnight. The session cycle starts fresh each day without interrupting a running or paused timer. Start–end times include pauses; focused minutes exclude them. Older history has estimated start times (marked ≈), calculated from its end time and duration. If auto-start is enabled, the next session starts at recovery time; Still never invents a series of completed sessions while you're away. Changing the system clock affects wall-clock timers.
 
 Quit saves the deadline; launching again resumes or completes that session. Paused sessions stay paused. Changing durations doesn't alter a running or paused session; reset or the next session uses the new duration. Switching session types resets the current countdown. A focus intention remains until you edit it.
 

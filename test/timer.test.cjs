@@ -72,19 +72,20 @@ test('malformed persisted data and invalid preferences get safe defaults', () =>
   assert.doesNotThrow(() => new Timer(null));
 });
 
-test('today uses local dates and credits completion time across midnight', () => {
+test('today uses local dates and credits start time across midnight', () => {
   const start = new Date(2026, 8, 5, 23, 50).getTime();
   const timer = new Timer(); timer.toggle(start); timer.tick(start + 1500000);
   assert.equal(dayKey(start), '2026-09-05');
-  assert.equal(timer.snapshot(start).today.count, 0);
-  assert.equal(timer.snapshot(start + 1500000).today.count, 1);
+  assert.equal(timer.snapshot(start).today.count, 1);
+  assert.equal(timer.snapshot(start + 1500000).today.count, 0);
+  assert.equal(timer.snapshot(start + 1500000).cycle, 0);
 });
 
 test('calendar returns every session on a local day, with totals and date validation', () => {
   const timer = new Timer();
   const leapDay = new Date(2024, 1, 29, 12).getTime();
   timer.history = Array.from({ length: 8 }, (_, i) => ({ at: leapDay + i * 60000, minutes: 25, task: `Session ${i}` }));
-  timer.history.push({ at: new Date(2024, 2, 1, 0).getTime(), minutes: 45, task: 'Tomorrow' });
+  timer.history.push({ at: new Date(2024, 2, 1, 1).getTime(), minutes: 45, task: 'Tomorrow' });
   const day = timer.daySummary('2024-02-29');
   assert.equal(day.count, 8);
   assert.equal(day.minutes, 200);
@@ -94,4 +95,47 @@ test('calendar returns every session on a local day, with totals and date valida
   assert.equal(timer.snapshot(leapDay).today.count, 8);
   assert.deepEqual(timer.daySummary('2024-02-28'), { date:'2024-02-28', count:0, minutes:0, sessions:[] });
   for (const date of [null, {}, '', '2024-2-29', '2023-02-29', '2024-02-30', '2024-13-01']) assert.throws(() => timer.daySummary(date), /Invalid calendar date/);
+});
+
+test('daily cycle resets live and on restart, including legacy saved cycles', () => {
+  const timer = new Timer({}, now);
+  for (let i = 0; i < 3; i++) {
+    timer.select('focus'); timer.toggle(now); timer.tick(now + 1500000);
+  }
+  assert.equal(timer.snapshot(now + 1500000).cycle, 3);
+  const saved = timer.serialize(now + 1500000);
+  const tomorrow = new Date(2026, 8, 6).getTime();
+  timer.tick(tomorrow);
+  assert.equal(timer.cycle, 0);
+  assert.equal(new Timer(saved, tomorrow).cycle, 0);
+  assert.equal(new Timer({ cycle:3 }, tomorrow).cycle, 0);
+  timer.select('focus'); timer.toggle(tomorrow); timer.tick(tomorrow + 1500000);
+  assert.equal(timer.mode, 'short');
+  assert.equal(timer.cycle, 1);
+});
+
+test('pause, restart and late recovery preserve the original start day and range', () => {
+  const start = new Date(2026, 8, 5, 23, 50).getTime();
+  const timer = new Timer({}, start);
+  timer.toggle(start); timer.toggle(start + 60000);
+  const resume = start + 86400000;
+  const restored = new Timer(timer.serialize(start + 60000), resume);
+  assert.equal(restored.startedAt, start);
+  restored.toggle(resume);
+  restored.tick(resume + 86400000);
+  assert.equal(restored.daySummary(dayKey(start)).count, 1);
+  assert.equal(restored.history[0].startedAt, start);
+  assert.equal(restored.history[0].at, resume + 1440000);
+  assert.equal(restored.history[0].minutes, 25);
+  assert.equal(restored.cycle, 0);
+  restored.select('focus');
+  assert.equal(restored.startedAt, null);
+});
+
+test('legacy history estimates starts and moves overnight records to their start day', () => {
+  const at = new Date(2026, 8, 6, 0, 7).getTime();
+  const timer = new Timer({ history:[{ at, minutes:25, task:'Legacy' }] }, at);
+  assert.equal(timer.daySummary('2026-09-05').count, 1);
+  assert.equal(timer.daySummary('2026-09-06').count, 0);
+  assert.equal(timer.history[0].startedAt, null);
 });

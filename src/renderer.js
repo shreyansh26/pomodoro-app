@@ -23,7 +23,13 @@ function sessionItem(session) {
   const check = document.createElement('span'); check.className = 'check'; check.textContent = '✓';
   const detail = document.createElement('div');
   const title = document.createElement('p'); title.textContent = session.task.trim() || 'A moment of focus'; title.title = title.textContent;
-  const metadata = document.createElement('small'); metadata.textContent = `${session.minutes} min · ${new Date(session.at).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}`;
+  const start = new Date(session.startedAt ?? session.at - session.minutes * 60000);
+  const end = new Date(session.at);
+  const time = date => date.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+  const endDate = localDate(start) === localDate(end) ? '' : ` (${end.toLocaleDateString(undefined, { month:'short', day:'numeric' })})`;
+  const metadata = document.createElement('small');
+  metadata.textContent = `${session.minutes} min · ${session.startedAt == null ? '≈' : ''}${time(start)} – ${time(end)}${endDate}`;
+  if (session.startedAt == null) metadata.title = 'Start time estimated from duration; older sessions did not save their start time.';
   detail.append(title, metadata); item.append(check, detail); return item;
 }
 

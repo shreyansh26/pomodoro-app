@@ -134,6 +134,7 @@ test('desktop flow, preferences, persistence, completion, security and responsiv
     await page.waitForFunction(() => document.querySelector('[data-mode=short]').getAttribute('aria-pressed') === 'true');
     assert.equal(await page.locator('#focus-count').textContent(), '1 / 8');
     assert.equal(await page.locator('#session-list .session-item p').textContent(), 'Read a chapter');
+    assert.match(await page.locator('#session-list .session-item small').textContent(), /25 min · .+ – .+/);
     assert.equal(await page.locator('#time').textContent(), '05:00');
     assert.equal(await page.locator('#history-total').textContent(), '0h 25m');
     assert.equal(await page.locator('#history-next').isDisabled(), true);
@@ -143,6 +144,7 @@ test('desktop flow, preferences, persistence, completion, security and responsiv
     assert.equal(await page.locator('#history-total').textContent(), '3h 40m');
     assert.equal(await page.locator('#history-list .session-item').count(), 8);
     assert.equal(await page.locator('#history-list .session-item p').first().textContent(), 'Review and reflect');
+    assert.match(await page.locator('#history-list .session-item small').first().textContent(), /45 min · ≈.+ – .+/);
     assert.equal(await page.locator('#history-list img').count(), 0);
     assert.ok((await page.locator('#history-list').textContent()).includes('A moment of focus'));
     await page.screenshot({ path:path.join(artifacts, 'still-calendar-light.png') });

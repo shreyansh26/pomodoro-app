@@ -30,11 +30,15 @@ class Timer {
     this.totalMs = finite(saved?.totalMs, 60000, 7200000) ? saved.totalMs : this.settings[this.mode] * 60000;
     this.remainingMs = finite(saved?.remainingMs, 0, this.totalMs) ? saved.remainingMs : this.totalMs;
     this.deadline = finite(saved?.deadline, 1, now + this.totalMs) ? saved.deadline : null;
-    this.cycle = Number.isInteger(saved?.cycle) && finite(saved.cycle, 0, this.settings.rounds - 1) ? saved.cycle : 0;
+    this.startedAt = finite(saved?.startedAt, 1, now) ? saved.startedAt :
+      this.deadline !== null ? this.deadline - this.totalMs :
+      this.remainingMs < this.totalMs ? now - (this.totalMs - this.remainingMs) : null;
     this.task = typeof saved?.task === 'string' ? saved.task.slice(0, 160) : '';
     this.history = Array.isArray(saved?.history) ? saved.history.filter(item =>
       item && finite(item.at, 1, now) && finite(item.minutes, 1, 120) && typeof item.task === 'string'
-    ).slice(-2000).map(item => ({ at: item.at, minutes: item.minutes, task: item.task.slice(0, 160) })) : [];
+    ).slice(-2000).map(item => ({ at: item.at, startedAt: finite(item.startedAt, 1, item.at) ? item.startedAt : null,
+      minutes: item.minutes, task: item.task.slice(0, 160) })) : [];
+    this.cycle = this.daySummary(dayKey(now)).count % this.settings.rounds;
   }
 
   remaining(now) { return this.deadline === null ? this.remainingMs : Math.max(0, this.deadline - now); }
@@ -45,10 +49,11 @@ class Timer {
     this.totalMs = this.settings[mode] * 60000;
     this.remainingMs = this.totalMs;
     this.deadline = null;
+    this.startedAt = null;
   }
 
   toggle(now) {
-    if (this.deadline === null) this.deadline = now + this.remainingMs;
+    if (this.deadline === null) { this.startedAt ??= now; this.deadline = now + this.remainingMs; }
     else { this.remainingMs = this.remaining(now); this.deadline = null; }
   }
 
@@ -60,15 +65,17 @@ class Timer {
   }
 
   tick(now) {
+    this.cycle = this.daySummary(dayKey(now)).count % this.settings.rounds;
     if (this.deadline === null || now < this.deadline) return null;
     const completed = this.mode;
     const at = this.deadline;
     if (completed === 'focus') {
-      this.history.push({ at, minutes: this.totalMs / 60000, task: this.task });
+      this.history.push({ at, startedAt: this.startedAt, minutes: this.totalMs / 60000, task: this.task });
       this.history = this.history.slice(-2000);
-      this.cycle = (this.cycle + 1) % this.settings.rounds;
+      this.cycle = this.daySummary(dayKey(this.startedAt)).count % this.settings.rounds;
     }
     this.select(this.nextMode());
+    this.cycle = this.daySummary(dayKey(now)).count % this.settings.rounds;
     // On wake, complete only the elapsed session; never invent unattended rounds.
     if (completed === 'focus' ? this.settings.autoBreak : this.settings.autoFocus) this.toggle(now);
     return { completed, next: this.mode };
@@ -85,12 +92,13 @@ class Timer {
     if (typeof date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(date) || dayKey(new Date(`${date}T12:00:00`)) !== date) {
       throw new Error('Invalid calendar date');
     }
-    const sessions = this.history.filter(item => dayKey(item.at) === date).sort((a, b) => b.at - a.at);
+    const sessions = this.history.filter(item => dayKey(item.startedAt ?? item.at - item.minutes * 60000) === date).sort((a, b) => b.at - a.at);
     return { date, count: sessions.length, minutes: sessions.reduce((sum, item) => sum + item.minutes, 0), sessions };
   }
 
   snapshot(now) {
     const today = this.daySummary(dayKey(now));
+    this.cycle = today.count % this.settings.rounds;
     return { settings: this.settings, mode: this.mode, totalMs: this.totalMs, cycle: this.cycle,
       task: this.task, remainingMs: this.remaining(now), running: this.deadline !== null,
       today };
@@ -98,7 +106,7 @@ class Timer {
 
   serialize(now) {
     return { settings: this.settings, mode: this.mode, totalMs: this.totalMs,
-      remainingMs: this.remaining(now), deadline: this.deadline, cycle: this.cycle,
+      remainingMs: this.remaining(now), deadline: this.deadline, startedAt: this.startedAt, cycle: this.cycle,
       task: this.task, history: this.history };
   }
 }
