@@ -3,7 +3,7 @@
 Still is an offline Electron Pomodoro app. Keep changes small and use the existing plain HTML/CSS/JavaScript implementation; no frontend build step is needed.
 
 - Read `README.md`, `package.json`, and the affected code before changing behavior. Release automation lives in `.github/workflows/build.yml`.
-- Use the fff MCP tools for file searches. Run Python utilities through a uv environment when needed.
+- Prefer FFF for file searches when it covers this workspace; if unavailable, empty, or outside its coverage, use read-only filesystem discovery and `rg`. Run Python utilities through a uv environment when needed.
 - Preserve unrelated worktree changes. Keep generated `dist/`, `artifacts/`, and `node_modules/` out of Git.
 - Git author configuration is repository-local: `Shreyansh Singh <shreyansh.pettswood@gmail.com>`. Keep Git configuration details out of the README.
 
