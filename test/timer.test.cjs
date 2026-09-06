@@ -13,11 +13,11 @@ test('start, pause, resume, reset and skip preserve the right duration and count
   assert.equal(timer.remaining(now + 65000), 1490000);
   timer.select('focus');
   assert.equal(timer.remaining(now), 1500000);
-  timer.skip();
+  timer.skip(now);
   assert.equal(timer.mode, 'short');
   assert.equal(timer.history.length, 0);
   assert.equal(timer.cycle, 0);
-  timer.skip();
+  timer.skip(now);
   assert.equal(timer.mode, 'focus');
 });
 
@@ -33,6 +33,68 @@ test('four completed focus sessions earn a long break; ticks cannot double count
   assert.equal(timer.history.length, 4);
   assert.equal(timer.cycle, 0);
   assert.equal(timer.snapshot(now).today.minutes, 100);
+});
+
+test('skipping records elapsed focus time, excludes pauses, and survives restart', () => {
+  for (const paused of [false, true]) {
+    const timer = new Timer({}, now);
+    timer.task = 'A little progress';
+    timer.toggle(now);
+    timer.toggle(now + 10 * 60000);
+    timer.toggle(now + 20 * 60000);
+    if (paused) timer.toggle(now + 26 * 60000 + 20000);
+    const end = now + (paused ? 40 * 60000 : 26 * 60000 + 20000);
+    timer.skip(end);
+    const expected = { at:end, startedAt:now, minutes:16 + 1 / 3, task:timer.task };
+    assert.deepEqual(timer.history, [expected]);
+    assert.equal(timer.mode, 'short');
+    assert.equal(timer.deadline, null);
+    assert.equal(timer.startedAt, null);
+    assert.equal(timer.cycle, 1);
+    const restored = new Timer(timer.serialize(end), end);
+    assert.deepEqual(restored.history, [expected]);
+    assert.equal(restored.snapshot(end).today.minutes, 16 + 1 / 3);
+    restored.toggle(end);
+    restored.skip(end + 1000);
+    assert.equal(restored.mode, 'focus');
+    assert.equal(restored.tick(end + 2000000), null);
+    assert.deepEqual(restored.history, [expected]);
+  }
+});
+
+test('skipped focus sessions count toward a long break and keep their start day', () => {
+  const start = new Date(2026, 8, 5, 23, 59).getTime();
+  const timer = new Timer({}, start);
+  timer.configure({ rounds:1 });
+  timer.toggle(start);
+  timer.skip(start + 16 * 60000);
+  assert.equal(timer.mode, 'long');
+  assert.equal(timer.daySummary(dayKey(start)).minutes, 16);
+  assert.equal(timer.snapshot(start + 16 * 60000).today.count, 0);
+  timer.select('focus');
+  timer.toggle(start + 90000);
+  timer.skip(start + 90000);
+  assert.equal(timer.mode, 'short');
+  assert.equal(timer.history.length, 1, 'zero elapsed time does not create an empty session');
+});
+
+test('skip requires more than 15 minutes taken, regardless of time left or paused', () => {
+  for (const elapsed of [0, 60000, 15 * 60000, 15 * 60000 + 1]) {
+    const timer = new Timer({}, now);
+    timer.configure({ focus:60 });
+    timer.toggle(now);
+    timer.toggle(now + elapsed);
+    timer.skip(now + 2 * 3600000);
+    const expected = elapsed > 15 * 60000 ? 1 : 0;
+    assert.equal(timer.history.length, expected);
+    assert.equal(timer.cycle, expected);
+    assert.equal(timer.mode, 'short');
+  }
+  const timer = new Timer({}, now);
+  timer.configure({ focus:16 });
+  timer.toggle(now);
+  timer.skip(now + 14 * 60000);
+  assert.equal(timer.history.length, 0, 'only two minutes left still does not qualify');
 });
 
 test('restart and sleep recovery complete only one elapsed session and start next at wake', () => {

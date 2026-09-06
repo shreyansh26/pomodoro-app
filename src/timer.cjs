@@ -59,9 +59,19 @@ class Timer {
 
   nextMode() { return this.mode === 'focus' ? (this.cycle === 0 ? 'long' : 'short') : 'focus'; }
 
-  skip() {
-    // Skipped focus sessions never count toward progress or a long break.
-    this.select(this.mode === 'focus' ? 'short' : 'focus');
+  recordFocus(at, minutes) {
+    this.history.push({ at, startedAt: this.startedAt, minutes, task: this.task });
+    this.history = this.history.slice(-2000);
+    this.cycle = this.daySummary(dayKey(this.startedAt)).count % this.settings.rounds;
+  }
+
+  skip(now) {
+    const elapsed = this.totalMs - this.remaining(now);
+    if (this.mode === 'focus' && elapsed > 15 * 60000) {
+      this.recordFocus(now, elapsed / 60000);
+      this.select(this.nextMode());
+    } else this.select(this.mode === 'focus' ? 'short' : 'focus');
+    this.cycle = this.daySummary(dayKey(now)).count % this.settings.rounds;
   }
 
   tick(now) {
@@ -70,9 +80,7 @@ class Timer {
     const completed = this.mode;
     const at = this.deadline;
     if (completed === 'focus') {
-      this.history.push({ at, startedAt: this.startedAt, minutes: this.totalMs / 60000, task: this.task });
-      this.history = this.history.slice(-2000);
-      this.cycle = this.daySummary(dayKey(this.startedAt)).count % this.settings.rounds;
+      this.recordFocus(at, this.totalMs / 60000);
     }
     this.select(this.nextMode());
     this.cycle = this.daySummary(dayKey(now)).count % this.settings.rounds;

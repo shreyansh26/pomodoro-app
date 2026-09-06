@@ -12,7 +12,10 @@ const dateButton = $('#history-date-button');
 let pickerDate;
 let historyQuery = 0;
 let historyRequestedDate = '';
-const formatDuration = minutes => `${Math.floor(minutes / 60)}h ${minutes % 60}m`;
+const formatDuration = minutes => {
+  const seconds = Math.round(minutes * 60);
+  return `${Math.floor(seconds / 3600)}h ${Math.floor(seconds / 60) % 60}m${seconds % 60 ? ` ${seconds % 60}s` : ''}`;
+};
 
 function localDate(date = new Date()) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
@@ -28,7 +31,8 @@ function sessionItem(session) {
   const time = date => date.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
   const endDate = localDate(start) === localDate(end) ? '' : ` (${end.toLocaleDateString(undefined, { month:'short', day:'numeric' })})`;
   const metadata = document.createElement('small');
-  metadata.textContent = `${session.minutes} min · ${session.startedAt == null ? '≈' : ''}${time(start)} – ${time(end)}${endDate}`;
+  const seconds = Math.round(session.minutes * 60);
+  metadata.textContent = `${Math.floor(seconds / 60)} min${seconds % 60 ? ` ${seconds % 60}s` : ''} · ${session.startedAt == null ? '≈' : ''}${time(start)} – ${time(end)}${endDate}`;
   if (session.startedAt == null) metadata.title = 'Start time estimated from duration; older sessions did not save their start time.';
   detail.append(title, metadata); item.append(check, detail); return item;
 }

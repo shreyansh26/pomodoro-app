@@ -74,7 +74,7 @@ function act(action, value) {
   switch (action) {
     case 'toggle': timer.toggle(Date.now()); break;
     case 'reset': timer.select(timer.mode); break;
-    case 'skip': timer.skip(); break;
+    case 'skip': timer.skip(Date.now()); break;
     case 'mode': if (!['focus', 'short', 'long'].includes(value)) throw new Error('Invalid mode'); timer.select(value); break;
     case 'task': if (typeof value !== 'string' || value.length > 160) throw new Error('Invalid intention'); timer.task = value; break;
     case 'settings':
