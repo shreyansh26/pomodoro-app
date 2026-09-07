@@ -61,8 +61,16 @@ test('desktop flow, preferences, persistence, completion, security and responsiv
     await page.screenshot({ path: path.join(artifacts, 'still-light.png') });
     await page.getByRole('button', { name: 'Start focus', exact: true }).click();
     await page.waitForFunction(() => document.querySelector('#time').textContent !== '25:00');
+    const running = await page.evaluate(() => window.still.getState());
+    await page.getByRole('button', { name: 'Focus', exact: true }).click();
+    const afterReselect = await page.evaluate(() => window.still.getState());
+    assert.equal(afterReselect.running, true, 'clicking the active tab keeps the timer running');
+    assert.ok(afterReselect.remainingMs <= running.remainingMs, 'clicking the active tab does not reset the countdown');
     await page.getByRole('button', { name: 'Pause', exact: true }).click();
     const paused = await page.locator('#time').textContent();
+    const pausedState = await page.evaluate(() => window.still.getState());
+    await page.getByRole('button', { name: 'Focus', exact: true }).click();
+    assert.deepEqual(await page.evaluate(() => window.still.getState()), pausedState, 'clicking the active tab preserves a paused session');
     await page.waitForTimeout(1200); assert.equal(await page.locator('#time').textContent(), paused);
     await page.locator('#task').fill('Build something meaningful');
     await page.locator('#task').dispatchEvent('keydown', { key:'Enter', isComposing:true });
